@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Track buses near you in real-time on a live map">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Track Buses — BusLocTrack</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="passenger-container">
+    <!-- Full-screen Map -->
+    <div id="passenger-map"></div>
+
+    <!-- Top Overlay -->
+    <div class="map-overlay-top">
+      <div class="map-header">
+        <a href="/" class="back-btn" id="btn-back">←</a>
+        <div class="header-info">
+          <div class="header-title">🗺️ Live Bus Map</div>
+          <div class="header-subtitle" id="connection-status">Connecting...</div>
+        </div>
+        <div class="page-status">
+          <span class="status-dot" id="ws-dot"></span>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" class="search-input" id="route-filter" placeholder="Search route or bus number...">
+      </div>
+    </div>
+
+    <!-- Bus Count Badge -->
+    <div class="bus-count-badge" id="bus-count-badge">
+      <span class="active-dot"></span>
+      <span><span class="count" id="bus-count">0</span> active buses</span>
+    </div>
+
+    <!-- No Buses Message -->
+    <div class="no-buses-msg" id="no-buses-msg">
+      <div class="no-buses-icon">🚌</div>
+      <h3>No Active Buses</h3>
+      <p>No buses are sharing their location right now. Check back soon!</p>
+    </div>
+
+    <!-- Locate Me Button -->
+    <button class="locate-btn" id="locate-btn" title="Find my location">📍</button>
+
+    <!-- Bus Info Panel (Bottom Sheet) -->
+    <div class="bus-panel" id="bus-panel">
+      <div class="bus-panel-handle"></div>
+      <div class="bus-panel-header">
+        <div class="bus-panel-icon">🚌</div>
+        <div>
+          <div class="bus-panel-title" id="panel-bus-number">—</div>
+          <div class="bus-panel-route" id="panel-route-name">—</div>
+        </div>
+        <button class="bus-panel-close" id="panel-close">✕</button>
+      </div>
+      <div class="bus-panel-stats">
+        <div class="bus-panel-stat">
+          <div class="panel-stat-value" id="panel-speed">—</div>
+          <div class="panel-stat-label">Speed (km/h)</div>
+        </div>
+        <div class="bus-panel-stat">
+          <div class="panel-stat-value" id="panel-distance">—</div>
+          <div class="panel-stat-label">Distance</div>
+        </div>
+        <div class="bus-panel-stat">
+          <div class="panel-stat-value" id="panel-updated">—</div>
+          <div class="panel-stat-label">Last Update</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/passenger.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Real-time bus location tracker. Track buses on a live map using GPS.">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BusLocTrack — Real-time Bus Tracker</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="landing-page" id="landing-page">
+    <div class="landing-logo">
+      <div class="bus-icon-large">🚌</div>
+    </div>
+    
+    <h1 class="landing-title">BusLocTrack</h1>
+    <p class="landing-subtitle">Real-time bus tracking for Nepal 🇳🇵</p>
+    
+    <div class="active-buses-badge" id="active-badge">
+      <span class="active-dot"></span>
+      <span id="active-count-text">Connecting...</span>
+    </div>
+    
+    <div class="role-cards">
+      <a href="/driver.html" class="role-card driver" id="btn-driver">
+        <div class="role-icon">🚌</div>
+        <div class="role-info">
+          <h3>I'm a Driver</h3>
+          <p>Share your bus location with passengers in real-time</p>
+        </div>
+        <span class="role-arrow">→</span>
+      </a>
+      
+      <a href="/passenger.html" class="role-card passenger" id="btn-passenger">
+        <div class="role-icon">🗺️</div>
+        <div class="role-info">
+          <h3>I'm a Passenger</h3>
+          <p>Find and track buses near you on a live map</p>
+        </div>
+        <span class="role-arrow">→</span>
+      </a>
+    </div>
+    
+    <div class="landing-footer">
+      Built with ❤️ for Nepal
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    // Fetch active bus count
+    const socket = io();
+    
+    fetch('/api/buses')
+      .then(r => r.json())
+      .then(buses => {
+        const count = buses.length;
+        const text = count === 0 
+          ? 'No active buses right now' 
+          : `${count} bus${count > 1 ? 'es' : ''} currently active`;
+        document.getElementById('active-count-text').textContent = text;
+      })
+      .catch(() => {
+        document.getElementById('active-count-text').textContent = 'Ready to track';
+      });
+
+    // Listen for live updates
+    socket.on('bus-online', () => updateCount(1));
+    socket.on('bus-offline', () => updateCount(-1));
+
+    let currentCount = 0;
+    function updateCount(delta) {
+      currentCount = Math.max(0, currentCount + delta);
+      const text = currentCount === 0 
+        ? 'No active buses right now' 
+        : `${currentCount} bus${currentCount > 1 ? 'es' : ''} currently active`;
+      document.getElementById('active-count-text').textContent = text;
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('SW registered'))
+        .catch(err => console.log('SW failed:', err));
+    }
+  </script>
+</body>
+</html>
