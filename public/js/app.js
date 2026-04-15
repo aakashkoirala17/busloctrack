@@ -11,12 +11,12 @@ const SOCKET_URL = IS_LOCAL && !IS_CAPACITOR ? window.location.origin : SERVER_U
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDSnKxxpHeAxmDVvct-pZdgRCcaw7oUR8o",
+  apiKey: "AIzaSyC96fkl5Jzs2uBjjidw3nz9V83CDzyyot8",
   authDomain: "studio-3264384714-e1ead.firebaseapp.com",
   projectId: "studio-3264384714-e1ead",
   storageBucket: "studio-3264384714-e1ead.firebasestorage.app",
   messagingSenderId: "818570224559",
-  appId: "1:818570224559:android:391065674a156e0eeb055a"
+  appId: "1:818570224559:web:76ca2c1596cc7d6beb055a"
 };
 
 // Initialize Firebase
