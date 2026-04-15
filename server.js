@@ -5,11 +5,13 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'busloctrack-secret-key-123';
 const USERS_FILE = path.join(__dirname, 'users.json');
 
 const app = express();
+app.use(cors()); // Enable CORS for all origins
 app.use(express.json()); // Handle JSON payloads
 const server = http.createServer(app);
 const io = new Server(server, {
