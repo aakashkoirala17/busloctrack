@@ -17,34 +17,19 @@
   <div class="auth-overlay hidden" id="auth-overlay">
     <div class="auth-card">
       <div class="auth-logo">🚌</div>
-      <h2 class="auth-title" id="auth-header-title">Welcome Back</h2>
-      <p class="auth-subtitle" id="auth-header-subtitle">Sign in to track buses in real-time</p>
+      <h2 class="auth-title">Welcome to BusLocTrack</h2>
+      <p class="auth-subtitle">Sign in with Google to track buses or share your location</p>
 
-      <form id="auth-form" class="auth-form">
-        <!-- Name Field (Only for Sign Up) -->
-        <div id="field-name" class="form-group auth-field hidden">
-          <input type="text" id="auth-name" class="form-input" placeholder="Full Name">
-        </div>
-
-        <!-- Phone Field -->
-        <div class="form-group auth-field">
-          <input type="tel" id="auth-phone" class="form-input" placeholder="Phone Number (98xxxxxxxx)">
-        </div>
-
-        <!-- Password Field -->
-        <div class="form-group auth-field">
-          <input type="password" id="auth-password" class="form-input" placeholder="Password">
-        </div>
-
-        <div id="auth-error" class="auth-error-msg hidden"></div>
-
-        <button type="submit" class="btn-primary" id="btn-auth-submit">Sign In</button>
-      </form>
-
-      <div class="auth-toggle">
-        <span id="toggle-text">Don't have an account?</span>
-        <button class="btn-link" id="btn-toggle-auth">Create Account</button>
+      <div class="google-auth-container">
+        <button id="btn-google-auth" class="btn-google">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+          <span>Sign in with Google</span>
+        </button>
       </div>
+
+      <div id="auth-error" class="auth-error-msg hidden"></div>
+      
+      <p class="auth-footer-note">Securely powered by Firebase</p>
     </div>
   </div>
 
@@ -88,6 +73,8 @@
 
   <div class="toast-container" id="toast-container"></div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <script src="/js/app.js"></script>
   <script>

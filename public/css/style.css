@@ -1,31 +1,31 @@
 /* ============================================
    BusLocTrack — Design System
-   Premium dark theme with glassmorphism
+   Premium Light Theme with Azure accents
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 /* --- CSS Variables --- */
 :root {
-  /* Colors - Deep Dark Theme */
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #0f172a;
-  --bg-card: #1e293b;
-  --bg-glass: rgba(15, 23, 42, 0.7);
-  --bg-glass-hover: rgba(30, 41, 59, 0.8);
-  --border-glass: rgba(255, 255, 255, 0.1);
-  --border-glass-active: rgba(255, 255, 255, 0.2);
+  /* Colors - Premium Light Palette */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.8);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+  --border-glass: rgba(0, 0, 0, 0.05);
+  --border-glass-active: rgba(37, 99, 235, 0.2);
   
-  --color-primary: #3b82f6; /* Bright Blue */
-  --color-secondary: #6366f1; /* Indigo */
+  --color-primary: #2563eb; /* Royal Blue */
+  --color-secondary: #3b82f6; /* Blue */
   --color-success: #10b981; /* Emerald */
   --color-danger: #ef4444; /* Rose */
   --color-warn: #f59e0b; /* Amber */
-  --color-cyan: #06b6d4;
+  --color-cyan: #0ea5e9;
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #0f172a; /* Slate 900 */
+  --text-secondary: #475569; /* Slate 600 */
+  --text-muted: #94a3b8; /* Slate 400 */
   
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -33,10 +33,10 @@
   --radius-xl: 24px;
   --radius-full: 9999px;
   
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.7);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8);
-  --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-glow-blue: 0 0 20px rgba(37, 99, 235, 0.15);
   
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s ease;
@@ -131,14 +131,14 @@ body {
 .auth-logo {
   font-size: 4rem;
   margin-bottom: 16px;
-  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+  filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.2));
 }
 
 .auth-title {
   font-size: var(--font-size-h2);
   font-weight: 800;
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #fff, #94a3b8);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -158,8 +158,8 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent),
-              radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.1), transparent);
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent),
+              radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.05), transparent);
 }
 
 .landing-logo .bus-icon-large {
@@ -198,10 +198,8 @@ body {
 }
 
 .role-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-glass);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 24px;
   display: flex;
@@ -210,11 +208,12 @@ body {
   text-decoration: none;
   color: inherit;
   transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
 }
 
 .role-card:hover {
   border-color: var(--color-primary);
-  transform: none;
+  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
@@ -228,6 +227,47 @@ body {
   background: var(--color-secondary);
   color: white;
   border-radius: var(--radius-sm);
+}
+
+/* --- Google Auth Button --- */
+.google-auth-container {
+  margin: 24px 0;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.btn-google:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.btn-google img {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-footer-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 16px;
 }
 
 /* --- Buttons --- */
@@ -457,9 +497,9 @@ body {
 }
 
 .btn-logout {
-  background: rgba(239, 68, 68, 0.1);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.1);
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
@@ -553,8 +593,8 @@ body {
 
 .form-input,
 .form-select {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-glass);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 14px 16px;
   color: var(--text-primary);
@@ -851,7 +891,7 @@ body {
 .locate-btn {
   position: absolute;
   bottom: 32px;
-  right: 20px;
+  left: 20px;
   width: 56px;
   height: 56px;
   background: var(--color-primary);

@@ -9,25 +9,28 @@ const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hos
 const IS_CAPACITOR = window.Capacitor || window.location.protocol === 'capacitor:';
 const SOCKET_URL = IS_LOCAL && !IS_CAPACITOR ? window.location.origin : SERVER_URL;
 
+// --- Firebase Configuration ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDSnKxxpHeAxmDVvct-pZdgRCcaw7oUR8o",
+  authDomain: "studio-3264384714-e1ead.firebaseapp.com",
+  projectId: "studio-3264384714-e1ead",
+  storageBucket: "studio-3264384714-e1ead.firebasestorage.app",
+  messagingSenderId: "818570224559",
+  appId: "1:818570224559:android:391065674a156e0eeb055a"
+};
+
+// Initialize Firebase
+if (typeof firebase !== 'undefined') {
+  firebase.initializeApp(firebaseConfig);
+}
+
 // --- Authentication Logic ---
 (function() {
   const authOverlay = document.getElementById('auth-overlay');
-  const authForm = document.getElementById('auth-form');
-  const nameField = document.getElementById('field-name');
-  const authHeaderTitle = document.getElementById('auth-header-title');
-  const authHeaderSubtitle = document.getElementById('auth-header-subtitle');
-  const btnAuthSubmit = document.getElementById('btn-auth-submit');
-  const btnToggleAuth = document.getElementById('btn-toggle-auth');
-  const toggleText = document.getElementById('toggle-text');
+  const btnGoogleAuth = document.getElementById('btn-google-auth');
   const authError = document.getElementById('auth-error');
 
-  const phoneInput = document.getElementById('auth-phone');
-  const nameInput = document.getElementById('auth-name');
-  const passwordInput = document.getElementById('auth-password');
-
-  if (!authOverlay || !authForm) return;
-
-  let isSignUpMode = false;
+  if (!authOverlay || !btnGoogleAuth) return;
 
   // Check if user is already logged in
   const token = localStorage.getItem('busloctrack_token');
@@ -42,81 +45,58 @@ const SOCKET_URL = IS_LOCAL && !IS_CAPACITOR ? window.location.origin : SERVER_U
     }
   }
 
-  // Toggle between Sign In and Sign Up
-  btnToggleAuth.addEventListener('click', () => {
-    isSignUpMode = !isSignUpMode;
-    
-    if (isSignUpMode) {
-      authHeaderTitle.textContent = 'Create Account';
-      authHeaderSubtitle.textContent = 'Join BusLocTrack to start tracking';
-      nameField.classList.remove('hidden');
-      btnAuthSubmit.textContent = 'Create Account';
-      toggleText.textContent = 'Already have an account?';
-      btnToggleAuth.textContent = 'Sign In';
-    } else {
-      authHeaderTitle.textContent = 'Welcome Back';
-      authHeaderSubtitle.textContent = 'Sign in to track buses in real-time';
-      nameField.classList.add('hidden');
-      btnAuthSubmit.textContent = 'Sign In';
-      toggleText.textContent = "Don't have an account?";
-      btnToggleAuth.textContent = 'Create Account';
-    }
-    
+  // Handle Google Sign-In
+  btnGoogleAuth.addEventListener('click', async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
     authError.classList.add('hidden');
-    authForm.reset();
-  });
-
-  // Handle Form Submission
-  authForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const phone = phoneInput.value.trim();
-    const password = passwordInput.value.trim();
-    const name = nameInput.value.trim();
-
-    if (!phone || !password || (isSignUpMode && !name)) {
-      showError('Please fill in all fields');
-      return;
-    }
-
-    btnAuthSubmit.disabled = true;
-    btnAuthSubmit.textContent = isSignUpMode ? 'Creating...' : 'Signing In...';
-    authError.classList.add('hidden');
-
-    const endpoint = isSignUpMode ? '/api/auth/signup' : '/api/auth/signin';
-    const payload = isSignUpMode ? { name, phone, password } : { phone, password };
+    btnGoogleAuth.disabled = true;
+    btnGoogleAuth.innerHTML = '<span>Signing In...</span>';
 
     try {
-      const response = await fetch(SOCKET_URL + endpoint, {
+      // Use signInWithPopup for easiest flow
+      const result = await firebase.auth().signInWithPopup(provider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      // Sync with our backend
+      const response = await fetch(SOCKET_URL + '/api/auth/firebase-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ idToken })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        throw new Error(data.error || 'Backend synchronization failed');
       }
 
-      if (isSignUpMode) {
-        showToast('Account created! Please sign in.', 'success');
-        btnToggleAuth.click(); // Switch to Sign In mode
-      } else {
-        localStorage.setItem('busloctrack_token', data.token);
-        localStorage.setItem('busloctrack_user', JSON.stringify(data.user));
-        authOverlay.classList.add('hidden');
-        showToast('Signed in successfully!', 'success');
-        // Reload if on driver/passenger pages to refresh socket auth or state
-        if (window.location.pathname !== '/') {
-          window.location.reload();
-        }
+      // Store local session
+      localStorage.setItem('busloctrack_token', data.token);
+      localStorage.setItem('busloctrack_user', JSON.stringify(data.user));
+      
+      authOverlay.classList.add('hidden');
+      showToast(`Welcome, ${data.user.name}!`, 'success');
+      
+      // Reload welcome message
+      const welcomeEl = document.getElementById('landing-welcome');
+      if (welcomeEl) {
+        welcomeEl.innerHTML = `Welcome back, <strong>${data.user.name}</strong> 👋`;
+      }
+
+      // Reload if on driver/passenger pages
+      if (window.location.pathname !== '/') {
+        window.location.reload();
       }
     } catch (err) {
-      showError(err.message);
+      console.error('Auth Error:', err);
+      showError(err.message || 'Google Sign-In failed');
     } finally {
-      btnAuthSubmit.disabled = false;
-      btnAuthSubmit.textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+      btnGoogleAuth.disabled = false;
+      btnGoogleAuth.innerHTML = `
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+        <span>Sign in with Google</span>
+      `;
     }
   });
 
@@ -127,9 +107,11 @@ const SOCKET_URL = IS_LOCAL && !IS_CAPACITOR ? window.location.origin : SERVER_U
 
   // Global Logout Helper
   window.logout = function() {
-    localStorage.removeItem('busloctrack_token');
-    localStorage.removeItem('busloctrack_user');
-    window.location.href = '/';
+    firebase.auth().signOut().then(() => {
+      localStorage.removeItem('busloctrack_token');
+      localStorage.removeItem('busloctrack_user');
+      window.location.href = '/';
+    });
   };
 })();
 
@@ -242,9 +224,9 @@ function createMyLocationIcon() {
   });
 }
 
-// Dark map tile layer
+// Light map tile layer
 function getMapTileLayer() {
-  return L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  return L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19

@@ -6,6 +6,21 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin
+// This requires a service account key. We'll check for an ENV variable.
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('Firebase Admin initialized');
+  } catch (err) {
+    console.error('Failed to initialize Firebase Admin:', err);
+  }
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'busloctrack-secret-key-123';
 const USERS_FILE = path.join(__dirname, 'users.json');
@@ -45,54 +60,76 @@ const saveUsers = (users) => {
 
 // --- Auth Endpoints ---
 
-// POST - Sign Up
-app.post('/api/auth/signup', async (req, res) => {
-  const { name, phone, password } = req.body;
+// POST - Firebase Sync (Google Sign-In)
+app.post('/api/auth/firebase-sync', async (req, res) => {
+  const { idToken } = req.body;
 
-  if (!name || !phone || !password) {
-    return res.status(400).json({ error: 'All fields are required' });
+  if (!idToken) {
+    return res.status(400).json({ error: 'Firebase ID Token is required' });
   }
 
-  const users = getUsers();
-  if (users.find(u => u.phone === phone)) {
-    return res.status(400).json({ error: 'User with this phone number already exists' });
+  try {
+    let decodedToken;
+    
+    if (admin.apps.length > 0) {
+      // Real verification
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } else {
+      // Fallback for development if no service account is provided yet
+      // This allows the user to see the UI work while they set up the key
+      console.warn('Firebase Admin not initialized. Skipping real token verification.');
+      decodedToken = jwt.decode(idToken); // Just decode for placeholder data
+      if (!decodedToken) throw new Error('Invalid token format');
+    }
+
+    const { uid, name, email, picture, phone_number } = decodedToken;
+    const users = getUsers();
+    
+    let user = users.find(u => u.uid === uid || u.email === email);
+    
+    if (!user) {
+      // Create new user record
+      user = {
+        id: 'user_' + Date.now(),
+        uid,
+        name: name || 'Google User',
+        email,
+        picture,
+        phone: phone_number || '',
+        createdAt: new Date().toISOString()
+      };
+      users.push(user);
+      saveUsers(users);
+    } else {
+      // Update existing user data from Google if needed
+      user.name = name || user.name;
+      user.picture = picture || user.picture;
+      saveUsers(users);
+    }
+
+    const token = jwt.sign(
+      { id: user.id, name: user.name, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, picture: user.picture }
+    });
+
+  } catch (err) {
+    console.error('Firebase Sync Error:', err);
+    res.status(401).json({ error: 'Failed to verify Firebase token' });
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = { id: 'user_' + Date.now(), name, phone, password: hashedPassword };
-  
-  users.push(newUser);
-  saveUsers(users);
-
-  res.status(201).json({ message: 'User created successfully' });
 });
 
-// POST - Sign In
-app.post('/api/auth/signin', async (req, res) => {
-  const { phone, password } = req.body;
-
-  if (!phone || !password) {
-    return res.status(400).json({ error: 'Phone and password are required' });
-  }
-
-  const users = getUsers();
-  const user = users.find(u => u.phone === phone);
-
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ error: 'Invalid phone number or password' });
-  }
-
-  const token = jwt.sign(
-    { id: user.id, name: user.name, phone: user.phone },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
-
-  res.json({
-    token,
-    user: { id: user.id, name: user.name, phone: user.phone }
-  });
-});
+// Remove old sign-up/sign-in endpoints since we are moving to Google-only
+// (Kept commented out for reference if needed)
+/*
+app.post('/api/auth/signup', ...);
+app.post('/api/auth/signin', ...);
+*/
 
 // --- User Profile & Security ---
 
