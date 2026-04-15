@@ -7,9 +7,9 @@
   'use strict';
 
   // DOM Elements
-  const routeSelect = document.getElementById('route-select');
+  const busNameInput = document.getElementById('bus-name');
+  const routeNameInput = document.getElementById('route-name');
   const busNumberInput = document.getElementById('bus-number');
-  const driverNameInput = document.getElementById('driver-name');
   const shareBtn = document.getElementById('share-btn');
   const shareBtnText = document.getElementById('share-btn-text');
   const driverForm = document.getElementById('driver-form');
@@ -29,14 +29,116 @@
   // State
   let isSharing = false;
   let watchId = null;
+  let backgroundWatchId = null;
   let startTime = null;
   let durationInterval = null;
   let map = null;
   let driverMarker = null;
   let accuracyCircle = null;
 
+  const { BackgroundGeolocation, App } = Capacitor.Plugins;
+
   // Socket.IO
-  const socket = io();
+  const token = localStorage.getItem('busloctrack_token');
+  const socket = io(SOCKET_URL, {
+    auth: { token }
+  });
+
+  // Handle socket auth errors
+  socket.on('connect_error', (err) => {
+    console.error('Socket Auth Error:', err.message);
+    if (err.message.includes('Authentication error')) {
+      showToast('Session expired. Please log in again.', 'error');
+      setTimeout(() => logout(), 2000);
+    }
+  });
+
+  // Load saved driver details (try server first, then fallback to local)
+  async function loadSavedDetails() {
+    const token = localStorage.getItem('busloctrack_token');
+    
+    // Try to fetch from server first
+    try {
+      const response = await fetch(`${SOCKET_URL}/api/user/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const profile = await response.json();
+        if (profile.busDetails) {
+          const { busName, routeName, busNumber } = profile.busDetails;
+          if (busName) busNameInput.value = busName;
+          if (routeName) routeNameInput.value = routeName;
+          if (busNumber) busNumberInput.value = busNumber;
+          validateForm();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch profile from server, using local fallback', e);
+    }
+
+    // Fallback to local storage
+    const saved = localStorage.getItem('driver_details');
+    if (saved) {
+      try {
+        const details = JSON.parse(saved);
+        if (details.busName) busNameInput.value = details.busName;
+        if (details.routeName) routeNameInput.value = details.routeName;
+        if (details.busNumber) busNumberInput.value = details.busNumber;
+        validateForm();
+      } catch (e) {
+        console.error('Error loading saved details', e);
+      }
+    }
+  }
+
+  // Save driver details
+  async function saveDetails() {
+    const details = {
+      busName: busNameInput.value.trim(),
+      routeName: routeNameInput.value.trim(),
+      busNumber: busNumberInput.value.trim()
+    };
+    
+    // Save locally
+    localStorage.setItem('driver_details', JSON.stringify(details));
+
+    // Async save to server
+    const token = localStorage.getItem('busloctrack_token');
+    try {
+      await fetch(`${SOCKET_URL}/api/user/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ busDetails: details })
+      });
+    } catch (e) {
+      console.error('Failed to sync details with server', e);
+    }
+  }
+
+  loadSavedDetails();
+
+  // Handle Android Back Button
+  if (App) {
+    App.addListener('backButton', ({ canGoBack }) => {
+      if (isSharing) {
+        // If sharing, show a confirmation or just don't exit the sharing mode
+        if (window.confirm('You are sharing location. Do you want to stop sharing and go back?')) {
+          stopSharing();
+          window.location.href = '/';
+        }
+      } else if (canGoBack) {
+        window.history.back();
+      } else {
+        window.location.href = '/';
+      }
+    });
+  }
 
   socket.on('connect', () => {
     statusDot.classList.add('connected');
@@ -52,12 +154,14 @@
 
   // Enable/disable share button based on form
   function validateForm() {
-    const routeSelected = routeSelect.value !== '';
-    const busEntered = busNumberInput.value.trim().length > 0;
-    shareBtn.disabled = !(routeSelected && busEntered);
+    const busNameEntered = busNameInput.value.trim().length > 0;
+    const routeEntered = routeNameInput.value.trim().length > 0;
+    const busNumEntered = busNumberInput.value.trim().length > 0;
+    shareBtn.disabled = !(busNameEntered && routeEntered && busNumEntered);
   }
 
-  routeSelect.addEventListener('change', validateForm);
+  busNameInput.addEventListener('input', validateForm);
+  routeNameInput.addEventListener('input', validateForm);
   busNumberInput.addEventListener('input', validateForm);
 
   // Initialize mini map
@@ -74,6 +178,20 @@
 
     // Fix map sizing after showing container
     setTimeout(() => map.invalidateSize(), 100);
+  }
+
+  // Initial location request
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // We don't show the map yet, but we'll use this location
+        // when the map is finally initialized
+        console.log('Driver location found:', latitude, longitude);
+      },
+      (err) => console.warn('Driver location error:', err),
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
   }
 
   // Update driver marker on map
@@ -103,64 +221,114 @@
   }
 
   // Start sharing location
-  function startSharing() {
+  async function startSharing() {
     if (!navigator.geolocation) {
       showToast('GPS not supported on this device', 'error');
       return;
     }
 
-    const selectedOption = routeSelect.options[routeSelect.selectedIndex];
-    const routeId = routeSelect.value;
-    const routeName = selectedOption.dataset.name;
+    const busName = busNameInput.value.trim();
+    const routeName = routeNameInput.value.trim();
     const busNumber = busNumberInput.value.trim();
-    const driverName = driverNameInput.value.trim() || 'Driver';
+
+    // Save details for next time
+    saveDetails();
 
     // Tell server we're starting
     socket.emit('bus-start', {
-      routeId,
+      busName,
       routeName,
-      busNumber,
-      driverName
+      busNumber
     });
 
-    // Start watching position
-    watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude, speed, heading, accuracy } = position.coords;
+    const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
 
-        // Send to server
-        socket.emit('bus-location', {
-          lat: latitude,
-          lng: longitude,
-          speed: speed || 0,
-          heading: heading || 0,
-          accuracy: accuracy || 0
-        });
+    if (isCapacitor && BackgroundGeolocation) {
+      // Use Capacitor Background Geolocation
+      try {
+        backgroundWatchId = await BackgroundGeolocation.addWatcher(
+          {
+            backgroundMessage: "Cancel to prevent battery drain.",
+            backgroundTitle: "BusLocTrack is tracking your location",
+            requestPermissions: true,
+            stale: false,
+            distanceFilter: 10
+          },
+          (location, error) => {
+            if (error) {
+              if (error.code === "NOT_AUTHORIZED") {
+                if (window.confirm("This app needs your location, but does not have permission.\n\nOpen settings now?")) {
+                  BackgroundGeolocation.openSettings();
+                }
+              }
+              return console.error(error);
+            }
 
-        // Update UI stats
-        statLat.textContent = latitude.toFixed(4);
-        statLng.textContent = longitude.toFixed(4);
-        statSpeed.textContent = formatSpeed(speed);
+            const { latitude, longitude, speed, bearing, accuracy } = location;
 
-        // Update map
-        updateMapMarker(latitude, longitude, accuracy);
-      },
-      (error) => {
-        console.error('GPS Error:', error);
-        let msg = 'GPS error occurred';
-        switch (error.code) {
-          case 1: msg = 'Location permission denied. Please allow GPS access.'; break;
-          case 2: msg = 'Location unavailable. Check your GPS settings.'; break;
-          case 3: msg = 'Location request timed out. Retrying...'; break;
-        }
-        showToast(msg, 'error', 5000);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 3000
+            // Send to server
+            socket.emit('bus-location', {
+              lat: latitude,
+              lng: longitude,
+              speed: speed || 0,
+              heading: bearing || 0,
+              accuracy: accuracy || 0
+            });
+
+            // Update UI stats
+            statLat.textContent = latitude.toFixed(4);
+            statLng.textContent = longitude.toFixed(4);
+            statSpeed.textContent = formatSpeed(speed);
+
+            // Update map
+            updateMapMarker(latitude, longitude, accuracy);
+          }
+        );
+      } catch (err) {
+        console.error('Background Geolocation Error:', err);
+        showToast('Failed to start background tracking', 'error');
+        return;
       }
-    );
+    } else {
+      // Use standard Geolocation
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, speed, heading, accuracy } = position.coords;
+
+          // Send to server
+          socket.emit('bus-location', {
+            lat: latitude,
+            lng: longitude,
+            speed: speed || 0,
+            heading: heading || 0,
+            accuracy: accuracy || 0
+          });
+
+          // Update UI stats
+          statLat.textContent = latitude.toFixed(4);
+          statLng.textContent = longitude.toFixed(4);
+          statSpeed.textContent = formatSpeed(speed);
+
+          // Update map
+          updateMapMarker(latitude, longitude, accuracy);
+        },
+        (error) => {
+          console.error('GPS Error:', error);
+          let msg = 'GPS error occurred';
+          switch (error.code) {
+            case 1: msg = 'Location permission denied. Please allow GPS access.'; break;
+            case 2: msg = 'Location unavailable. Check your GPS settings.'; break;
+            case 3: msg = 'Location request timed out. Retrying...'; break;
+          }
+          showToast(msg, 'error', 5000);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 3000
+        }
+      );
+    }
 
     // Update state  
     isSharing = true;
@@ -176,9 +344,9 @@
     infoSharing.classList.remove('hidden');
 
     // Disable form
-    routeSelect.disabled = true;
+    busNameInput.disabled = true;
+    routeNameInput.disabled = true;
     busNumberInput.disabled = true;
-    driverNameInput.disabled = true;
 
     // Initialize map
     initMap();
@@ -196,6 +364,11 @@
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId);
       watchId = null;
+    }
+
+    if (backgroundWatchId !== null && BackgroundGeolocation) {
+      BackgroundGeolocation.removeWatcher({ id: backgroundWatchId });
+      backgroundWatchId = null;
     }
 
     socket.emit('bus-stop');
@@ -218,9 +391,9 @@
     infoSharing.classList.add('hidden');
 
     // Re-enable form
-    routeSelect.disabled = false;
+    busNameInput.disabled = false;
+    routeNameInput.disabled = false;
     busNumberInput.disabled = false;
-    driverNameInput.disabled = false;
 
     showToast('Location sharing stopped', 'info');
   }
@@ -233,6 +406,18 @@
       startSharing();
     }
   });
+
+  // Disconnect on back button
+  const backBtn = document.getElementById('btn-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      // Don't disconnect socket here if we want background to work
+      // only disconnect if we aren't sharing
+      if (!isSharing) {
+        socket.disconnect();
+      }
+    });
+  }
 
   // Warn before leaving while sharing
   window.addEventListener('beforeunload', (e) => {

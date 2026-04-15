@@ -16,6 +16,7 @@
   const locateBtn = document.getElementById('locate-btn');
   const busPanel = document.getElementById('bus-panel');
   const panelClose = document.getElementById('panel-close');
+  const panelFavorite = document.getElementById('panel-favorite');
   const panelBusNumber = document.getElementById('panel-bus-number');
   const panelRouteName = document.getElementById('panel-route-name');
   const panelSpeed = document.getElementById('panel-speed');
@@ -28,6 +29,7 @@
   let myLocationMarker = null;
   let selectedBusId = null;
   let filterText = '';
+  let userFavorites = []; // Array of bus registration numbers or IDs
 
   // Initialize Map
   const map = L.map('passenger-map', {
@@ -37,20 +39,74 @@
 
   getMapTileLayer().addTo(map);
 
+  // Ask for location immediately
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        myLocation = { lat: latitude, lng: longitude };
+        
+        myLocationMarker = L.marker([latitude, longitude], {
+          icon: createMyLocationIcon()
+        }).addTo(map);
+
+        map.setView([latitude, longitude], 15);
+        showToast('Viewing your location', 'success');
+      },
+      (err) => {
+        console.warn('Location permission denied or error:', err);
+        showToast('Using default map view', 'info');
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  }
+
   // Move zoom control to bottom-right
   map.zoomControl.setPosition('bottomright');
 
   // Socket.IO
-  const socket = io();
+  const token = localStorage.getItem('busloctrack_token');
+  const socket = io(SOCKET_URL, {
+    auth: { token }
+  });
 
   socket.on('connect', () => {
     wsDot.classList.add('connected');
     connectionStatus.textContent = 'Live — Tracking active';
     showToast('Connected to live tracking', 'success');
     
+    // Fetch user profile (to markers favorites)
+    fetchUserProfile();
+    
     // Fetch existing buses
     fetchActiveBuses();
   });
+
+  socket.on('connect_error', (err) => {
+    console.error('Socket Auth Error:', err.message);
+    if (err.message.includes('Authentication error')) {
+      showToast('Session expired. Please log in again.', 'error');
+      setTimeout(() => logout(), 2000);
+    }
+  });
+
+  // Fetch user profile to get favorites
+  async function fetchUserProfile() {
+    const token = localStorage.getItem('busloctrack_token');
+    try {
+      const response = await fetch(`${SOCKET_URL}/api/user/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const profile = await response.json();
+        userFavorites = profile.favorites || [];
+        // Update any existing markers to show star if favorited
+        buses.forEach(bus => updateMarkerIcon(bus));
+      }
+    } catch (e) {
+      console.error('Failed to fetch profile', e);
+    }
+  }
 
   socket.on('disconnect', () => {
     wsDot.classList.remove('connected');
@@ -61,7 +117,7 @@
   // Fetch existing active buses on load
   async function fetchActiveBuses() {
     try {
-      const res = await fetch('/api/buses');
+      const res = await fetch(`${SOCKET_URL}/api/buses`);
       const busList = await res.json();
       busList.forEach(bus => {
         if (bus.lat && bus.lng) {
@@ -76,7 +132,7 @@
 
   // New bus comes online
   socket.on('bus-online', (data) => {
-    showToast(`🚌 ${data.busNumber || 'Bus'} is now online on ${data.routeName || 'a route'}`, 'info');
+    showToast(`🚌 ${data.busName || 'Bus'} is now online: ${data.routeName || 'a route'}`, 'info');
     updateBusCount();
   });
 
@@ -132,6 +188,12 @@
     applyFilter();
   }
 
+  // Update marker icon based on favorite status
+  function updateMarkerIcon(bus) {
+    const isFavorite = userFavorites.includes(bus.data.busNumber);
+    bus.marker.setIcon(createBusIcon(bus.data.busNumber, isFavorite));
+  }
+
   // Smooth marker animation
   function animateMarker(marker, from, to, duration) {
     const start = performance.now();
@@ -185,7 +247,7 @@
 
   // Update info panel
   function updatePanel(data) {
-    panelBusNumber.textContent = data.busNumber || 'Unknown Bus';
+    panelBusNumber.textContent = `${data.busName || ''} (${data.busNumber || '—'})`;
     panelRouteName.textContent = data.routeName || 'Unknown Route';
     panelSpeed.textContent = data.speed ? formatSpeed(data.speed) : '0';
     panelUpdated.textContent = data.lastUpdate ? timeAgo(data.lastUpdate) : '—';
@@ -197,7 +259,49 @@
     } else {
       panelDistance.textContent = '—';
     }
+
+    // Update favorite button state
+    const isFavorite = userFavorites.includes(data.busNumber);
+    panelFavorite.classList.toggle('active', isFavorite);
+    panelFavorite.innerHTML = isFavorite ? '⭐' : '☆';
   }
+
+  // Handle favorite toggle
+  panelFavorite.addEventListener('click', async () => {
+    if (!selectedBusId) return;
+    const bus = buses.get(selectedBusId);
+    if (!bus) return;
+
+    const busNumber = bus.data.busNumber;
+    const isFavorite = userFavorites.includes(busNumber);
+
+    if (isFavorite) {
+      userFavorites = userFavorites.filter(id => id !== busNumber);
+    } else {
+      userFavorites.push(busNumber);
+    }
+
+    // UI Updates
+    panelFavorite.classList.toggle('active', !isFavorite);
+    panelFavorite.innerHTML = !isFavorite ? '⭐' : '☆';
+    updateMarkerIcon(bus);
+
+    // Sync with server
+    const token = localStorage.getItem('busloctrack_token');
+    try {
+      await fetch(`${SOCKET_URL}/api/user/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ favorites: userFavorites })
+      });
+      showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites', 'success');
+    } catch (e) {
+      console.error('Failed to sync favorites', e);
+    }
+  });
 
   // Close panel
   function closePanel() {
@@ -207,7 +311,13 @@
 
   panelClose.addEventListener('click', closePanel);
 
-  // Update bus count
+  // Disconnect on back button
+  const backBtn = document.getElementById('btn-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      socket.disconnect();
+    });
+  }
   function updateBusCount() {
     const count = buses.size;
     busCountEl.textContent = count;

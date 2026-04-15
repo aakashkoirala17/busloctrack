@@ -2,6 +2,137 @@
  * BusLocTrack — Shared Utilities
  */
 
+// Deployment server URL - Change this to your live server URL
+const SERVER_URL = 'https://busloctrack.onrender.com'; // Your live server URL
+const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+// If we are on localhost but inside Capacitor, we should still use the remote SERVER_URL
+const IS_CAPACITOR = window.Capacitor || window.location.protocol === 'capacitor:';
+const SOCKET_URL = IS_LOCAL && !IS_CAPACITOR ? window.location.origin : SERVER_URL;
+
+// --- Authentication Logic ---
+(function() {
+  const authOverlay = document.getElementById('auth-overlay');
+  const authForm = document.getElementById('auth-form');
+  const nameField = document.getElementById('field-name');
+  const authHeaderTitle = document.getElementById('auth-header-title');
+  const authHeaderSubtitle = document.getElementById('auth-header-subtitle');
+  const btnAuthSubmit = document.getElementById('btn-auth-submit');
+  const btnToggleAuth = document.getElementById('btn-toggle-auth');
+  const toggleText = document.getElementById('toggle-text');
+  const authError = document.getElementById('auth-error');
+
+  const phoneInput = document.getElementById('auth-phone');
+  const nameInput = document.getElementById('auth-name');
+  const passwordInput = document.getElementById('auth-password');
+
+  if (!authOverlay || !authForm) return;
+
+  let isSignUpMode = false;
+
+  // Check if user is already logged in
+  const token = localStorage.getItem('busloctrack_token');
+  if (!token) {
+    authOverlay.classList.remove('hidden');
+  } else {
+    // Show personalized welcome
+    const user = JSON.parse(localStorage.getItem('busloctrack_user') || '{}');
+    const welcomeEl = document.getElementById('landing-welcome');
+    if (welcomeEl && user.name) {
+      welcomeEl.innerHTML = `Welcome back, <strong>${user.name}</strong> 👋`;
+    }
+  }
+
+  // Toggle between Sign In and Sign Up
+  btnToggleAuth.addEventListener('click', () => {
+    isSignUpMode = !isSignUpMode;
+    
+    if (isSignUpMode) {
+      authHeaderTitle.textContent = 'Create Account';
+      authHeaderSubtitle.textContent = 'Join BusLocTrack to start tracking';
+      nameField.classList.remove('hidden');
+      btnAuthSubmit.textContent = 'Create Account';
+      toggleText.textContent = 'Already have an account?';
+      btnToggleAuth.textContent = 'Sign In';
+    } else {
+      authHeaderTitle.textContent = 'Welcome Back';
+      authHeaderSubtitle.textContent = 'Sign in to track buses in real-time';
+      nameField.classList.add('hidden');
+      btnAuthSubmit.textContent = 'Sign In';
+      toggleText.textContent = "Don't have an account?";
+      btnToggleAuth.textContent = 'Create Account';
+    }
+    
+    authError.classList.add('hidden');
+    authForm.reset();
+  });
+
+  // Handle Form Submission
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const phone = phoneInput.value.trim();
+    const password = passwordInput.value.trim();
+    const name = nameInput.value.trim();
+
+    if (!phone || !password || (isSignUpMode && !name)) {
+      showError('Please fill in all fields');
+      return;
+    }
+
+    btnAuthSubmit.disabled = true;
+    btnAuthSubmit.textContent = isSignUpMode ? 'Creating...' : 'Signing In...';
+    authError.classList.add('hidden');
+
+    const endpoint = isSignUpMode ? '/api/auth/signup' : '/api/auth/signin';
+    const payload = isSignUpMode ? { name, phone, password } : { phone, password };
+
+    try {
+      const response = await fetch(SOCKET_URL + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
+      }
+
+      if (isSignUpMode) {
+        showToast('Account created! Please sign in.', 'success');
+        btnToggleAuth.click(); // Switch to Sign In mode
+      } else {
+        localStorage.setItem('busloctrack_token', data.token);
+        localStorage.setItem('busloctrack_user', JSON.stringify(data.user));
+        authOverlay.classList.add('hidden');
+        showToast('Signed in successfully!', 'success');
+        // Reload if on driver/passenger pages to refresh socket auth or state
+        if (window.location.pathname !== '/') {
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      btnAuthSubmit.disabled = false;
+      btnAuthSubmit.textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+    }
+  });
+
+  function showError(msg) {
+    authError.textContent = msg;
+    authError.classList.remove('hidden');
+  }
+
+  // Global Logout Helper
+  window.logout = function() {
+    localStorage.removeItem('busloctrack_token');
+    localStorage.removeItem('busloctrack_user');
+    window.location.href = '/';
+  };
+})();
+
 // Toast notification system
 function showToast(message, type = 'info', duration = 3000) {
   const container = document.getElementById('toast-container');
@@ -82,12 +213,13 @@ function estimateETA(distanceKm, speedKmh) {
 }
 
 // Create custom bus marker icon for Leaflet
-function createBusIcon(busNumber) {
+function createBusIcon(busNumber, isFavorite = false) {
   return L.divIcon({
-    className: 'bus-marker-icon',
+    className: `bus-marker-icon ${isFavorite ? 'favorite' : ''}`,
     html: `
       <div class="bus-marker">
         <span>🚌</span>
+        ${isFavorite ? '<div class="marker-star">⭐</div>' : ''}
       </div>
       <div class="bus-marker-label">${busNumber || 'Bus'}</div>
     `,

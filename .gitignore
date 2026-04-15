@@ -5,3 +5,8 @@ npm-debug.log
 yarn-debug.log
 yarn-error.log
 .gemini/
+users.json
+android/app/build/
+android/build/
+*.aar
+*.apk

@@ -26,9 +26,7 @@
           <div class="header-title">🗺️ Live Bus Map</div>
           <div class="header-subtitle" id="connection-status">Connecting...</div>
         </div>
-        <div class="page-status">
-          <span class="status-dot" id="ws-dot"></span>
-        </div>
+        <button class="btn-logout" onclick="logout()" title="Logout">Logout</button>
       </div>
 
       <div class="filter-bar">
@@ -61,7 +59,10 @@
           <div class="bus-panel-title" id="panel-bus-number">—</div>
           <div class="bus-panel-route" id="panel-route-name">—</div>
         </div>
-        <button class="bus-panel-close" id="panel-close">✕</button>
+        <div class="bus-panel-actions">
+          <button class="bus-panel-favorite" id="panel-favorite" title="Add to favorites">⭐</button>
+          <button class="bus-panel-close" id="panel-close">✕</button>
+        </div>
       </div>
       <div class="bus-panel-stats">
         <div class="bus-panel-stat">
@@ -83,7 +84,7 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/passenger.js"></script>
 </body>

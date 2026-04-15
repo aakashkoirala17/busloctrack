@@ -1,0 +1,6 @@
+{
+  "appId": "com.bustrack.app",
+  "appName": "BusLocTrack",
+  "webDir": "public",
+  "bundledWebRuntime": false
+}

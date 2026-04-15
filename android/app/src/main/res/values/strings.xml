@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BusLocTrack</string>
+    <string name="title_activity_main">BusLocTrack</string>
+    <string name="package_name">com.bustrack.app</string>
+    <string name="custom_url_scheme">com.bustrack.app</string>
+</resources>

@@ -22,79 +22,25 @@
       <span class="status-dot" id="status-dot"></span>
       <span id="status-text">Offline</span>
     </div>
+    <button class="btn-logout" onclick="logout()" title="Logout">Logout</button>
   </header>
 
   <div class="driver-container">
     <!-- Setup Form -->
     <div class="driver-form" id="driver-form">
       <div class="form-group">
-        <label for="route-select">Bus Route</label>
-        <select class="form-select" id="route-select">
-          <option value="" disabled selected>Select your route</option>
-
-          <optgroup label="🏙️ City Routes — Kathmandu Valley">
-            <option value="city-1" data-name="Ratnapark → Bhaktapur">Ratnapark → Bhaktapur</option>
-            <option value="city-2" data-name="Kalanki → Koteshwor">Kalanki → Koteshwor</option>
-            <option value="city-3" data-name="Lagankhel → Budhanilkantha">Lagankhel → Budhanilkantha</option>
-            <option value="city-4" data-name="Satdobato → Balaju">Satdobato → Balaju</option>
-            <option value="city-5" data-name="Gongabu → Lubhu">Gongabu → Lubhu</option>
-            <option value="city-6" data-name="Chabahil → Kirtipur">Chabahil → Kirtipur</option>
-            <option value="city-7" data-name="Ratnapark → Kirtipur">Ratnapark → Kirtipur</option>
-            <option value="city-8" data-name="Lagankhel → Kalanki">Lagankhel → Kalanki</option>
-            <option value="city-9" data-name="Gongabu → Bhaktapur">Gongabu → Bhaktapur</option>
-            <option value="city-10" data-name="Swayambhu → Boudha">Swayambhu → Boudha</option>
-          </optgroup>
-
-          <optgroup label="🛣️ Long Route — Kathmandu Departures">
-            <option value="long-ktm-pkr" data-name="Kathmandu → Pokhara">Kathmandu → Pokhara (~200km)</option>
-            <option value="long-ktm-cht" data-name="Kathmandu → Chitwan (Narayanghat)">Kathmandu → Chitwan / Narayanghat (~150km)</option>
-            <option value="long-ktm-bwi" data-name="Kathmandu → Bhairahawa (Lumbini)">Kathmandu → Bhairahawa / Lumbini (~280km)</option>
-            <option value="long-ktm-btl" data-name="Kathmandu → Butwal">Kathmandu → Butwal (~270km)</option>
-            <option value="long-ktm-brj" data-name="Kathmandu → Birgunj">Kathmandu → Birgunj (~280km)</option>
-            <option value="long-ktm-jnk" data-name="Kathmandu → Janakpur">Kathmandu → Janakpur (~400km)</option>
-            <option value="long-ktm-brt" data-name="Kathmandu → Biratnagar">Kathmandu → Biratnagar (~540km)</option>
-            <option value="long-ktm-drn" data-name="Kathmandu → Dharan">Kathmandu → Dharan (~530km)</option>
-            <option value="long-ktm-ilm" data-name="Kathmandu → Ilam">Kathmandu → Ilam (~600km)</option>
-            <option value="long-ktm-npj" data-name="Kathmandu → Nepalgunj">Kathmandu → Nepalgunj (~530km)</option>
-            <option value="long-ktm-dgd" data-name="Kathmandu → Dhangadhi">Kathmandu → Dhangadhi (~700km)</option>
-            <option value="long-ktm-mhn" data-name="Kathmandu → Mahendranagar">Kathmandu → Mahendranagar (~750km)</option>
-            <option value="long-ktm-htd" data-name="Kathmandu → Hetauda">Kathmandu → Hetauda (~150km)</option>
-            <option value="long-ktm-grk" data-name="Kathmandu → Gorkha">Kathmandu → Gorkha (~140km)</option>
-            <option value="long-ktm-dng" data-name="Kathmandu → Dang (Tulsipur)">Kathmandu → Dang / Tulsipur (~430km)</option>
-            <option value="long-ktm-kpv" data-name="Kathmandu → Kapilvastu (Taulihawa)">Kathmandu → Kapilvastu (~310km)</option>
-            <option value="long-ktm-skt" data-name="Kathmandu → Surkhet">Kathmandu → Surkhet (~600km)</option>
-          </optgroup>
-
-          <optgroup label="🛣️ Long Route — Pokhara Departures">
-            <option value="long-pkr-cht" data-name="Pokhara → Chitwan">Pokhara → Chitwan (~150km)</option>
-            <option value="long-pkr-bwi" data-name="Pokhara → Bhairahawa (Lumbini)">Pokhara → Bhairahawa / Lumbini (~190km)</option>
-            <option value="long-pkr-btl" data-name="Pokhara → Butwal">Pokhara → Butwal (~170km)</option>
-            <option value="long-pkr-brj" data-name="Pokhara → Birgunj">Pokhara → Birgunj (~290km)</option>
-            <option value="long-pkr-bgs" data-name="Pokhara → Baglung">Pokhara → Baglung (~72km)</option>
-            <option value="long-pkr-jms" data-name="Pokhara → Jomsom">Pokhara → Jomsom (~160km)</option>
-          </optgroup>
-
-          <optgroup label="🛣️ Long Route — Terai / East-West Highway">
-            <option value="long-brt-npj" data-name="Biratnagar → Nepalgunj">Biratnagar → Nepalgunj (~680km)</option>
-            <option value="long-brt-kkg" data-name="Biratnagar → Kakarbhitta">Biratnagar → Kakarbhitta (~180km)</option>
-            <option value="long-brj-jnk" data-name="Birgunj → Janakpur">Birgunj → Janakpur (~200km)</option>
-            <option value="long-btl-npj" data-name="Butwal → Nepalgunj">Butwal → Nepalgunj (~270km)</option>
-            <option value="long-npj-dgd" data-name="Nepalgunj → Dhangadhi">Nepalgunj → Dhangadhi (~250km)</option>
-            <option value="long-dgd-mhn" data-name="Dhangadhi → Mahendranagar">Dhangadhi → Mahendranagar (~90km)</option>
-            <option value="long-jnk-brt" data-name="Janakpur → Biratnagar">Janakpur → Biratnagar (~200km)</option>
-          </optgroup>
-
-        </select>
+        <label for="bus-name">Bus Name / Company</label>
+        <input type="text" class="form-input" id="bus-name" placeholder="e.g., Sajilo Yatayat" maxlength="40">
       </div>
 
       <div class="form-group">
-        <label for="bus-number">Bus Number / ID</label>
+        <label for="route-name">Route Name</label>
+        <input type="text" class="form-input" id="route-name" placeholder="e.g., Ratnapark → Bhaktapur" maxlength="50">
+      </div>
+
+      <div class="form-group">
+        <label for="bus-number">Bus Number / Plate ID</label>
         <input type="text" class="form-input" id="bus-number" placeholder="e.g., Ba 2 Kha 5678" maxlength="20">
-      </div>
-
-      <div class="form-group">
-        <label for="driver-name">Your Name (Optional)</label>
-        <input type="text" class="form-input" id="driver-name" placeholder="e.g., Ram Bahadur" maxlength="30">
       </div>
     </div>
 
@@ -104,7 +50,7 @@
     </button>
 
     <!-- Stats Cards -->
-    <div class="stats-grid hidden" id="stats-grid" style="margin-top: 20px;">
+    <div class="stats-grid hidden" id="stats-grid">
       <div class="stat-card">
         <div class="stat-icon">📍</div>
         <div class="stat-value" id="stat-lat">—</div>
@@ -133,13 +79,13 @@
     </div>
 
     <!-- Info Banner -->
-    <div class="info-banner" id="info-gps" style="margin-top: 16px;">
+    <div class="info-banner" id="info-gps">
       <span class="info-icon">ℹ️</span>
       <span>Make sure GPS/Location is enabled on your device. Keep this page open while driving — your location will be shared with passengers in real-time.</span>
     </div>
 
     <!-- Sharing Active Banner -->
-    <div class="info-banner hidden" id="info-sharing" style="margin-top: 16px; border-color: rgba(16, 185, 129, 0.3);">
+    <div class="info-banner success hidden" id="info-sharing">
       <span class="info-icon">✅</span>
       <span>Location sharing is active. Passengers can see your bus on the map. Keep this page open.</span>
     </div>
@@ -148,7 +94,7 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/driver.js"></script>
 </body>
