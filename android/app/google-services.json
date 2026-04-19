@@ -12,7 +12,20 @@
           "package_name": "com.company.busloctrack"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "818570224559-3g16k0o3c0hkvd3qr8adl65ubqs6vq4q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.busloctrack",
+            "certificate_hash": "a62b7962597d4641203c8b8741528db0c7a6f961"
+          }
+        },
+        {
+          "client_id": "818570224559-g818o0co8fuku76q8h3oqhcn57brjvcb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDSnKxxpHeAxmDVvct-pZdgRCcaw7oUR8o"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "818570224559-g818o0co8fuku76q8h3oqhcn57brjvcb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

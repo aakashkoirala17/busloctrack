@@ -45,17 +45,66 @@ if (typeof firebase !== 'undefined') {
     }
   }
 
-  // Handle Google Sign-In
+  // Handle Google Sign-In Redirect Result
+  if (typeof firebase !== 'undefined') {
+    firebase.auth().getRedirectResult()
+      .then((result) => {
+        if (result.user) {
+          handleAuthSuccess(result.user);
+        }
+      })
+      .catch((err) => {
+        console.error('Redirect Auth Error:', err);
+        showError(err.message || 'Google Sign-In failed');
+      });
+  }
+
+  // Handle Google Sign-In Click
   btnGoogleAuth.addEventListener('click', async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
     authError.classList.add('hidden');
     btnGoogleAuth.disabled = true;
-    btnGoogleAuth.innerHTML = '<span>Signing In...</span>';
+    
+    if (IS_CAPACITOR) {
+      btnGoogleAuth.innerHTML = '<span>Opening Google...</span>';
+      try {
+        // --- NATIVE AUTH FLOW (Modern) ---
+        // This solves the "disallowed_useragent" error and legacy 404s
+        const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle();
+        
+        if (result.user) {
+          handleAuthSuccess(result.user);
+        } else {
+          throw new Error('No user data returned from native sign-in');
+        }
+      } catch (err) {
+        console.error('Native Auth Error:', err);
+        showError(err.message || 'Google Sign-In failed');
+        btnGoogleAuth.disabled = false;
+        btnGoogleAuth.innerHTML = `
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+          <span>Sign in with Google</span>
+        `;
+      }
+    } else {
+      // --- WEB AUTH FLOW (PWA/Browser) ---
+      btnGoogleAuth.innerHTML = '<span>Redirecting to Google...</span>';
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await firebase.auth().signInWithRedirect(provider);
+      } catch (err) {
+        console.error('Web Auth Error:', err);
+        showError(err.message || 'Failed to start Google Sign-In');
+        btnGoogleAuth.disabled = false;
+        btnGoogleAuth.innerHTML = `
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+          <span>Sign in with Google</span>
+        `;
+      }
+    }
+  });
 
+  async function handleAuthSuccess(user) {
     try {
-      // Use signInWithPopup for easiest flow
-      const result = await firebase.auth().signInWithPopup(provider);
-      const user = result.user;
       const idToken = await user.getIdToken();
 
       // Sync with our backend
@@ -85,20 +134,14 @@ if (typeof firebase !== 'undefined') {
       }
 
       // Reload if on driver/passenger pages
-      if (window.location.pathname !== '/') {
+      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
         window.location.reload();
       }
     } catch (err) {
-      console.error('Auth Error:', err);
-      showError(err.message || 'Google Sign-In failed');
-    } finally {
-      btnGoogleAuth.disabled = false;
-      btnGoogleAuth.innerHTML = `
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
-        <span>Sign in with Google</span>
-      `;
+      console.error('Sync Error:', err);
+      showError(err.message || 'Backend sync failed');
     }
-  });
+  }
 
   function showError(msg) {
     authError.textContent = msg;

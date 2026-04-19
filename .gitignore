@@ -10,3 +10,4 @@ android/app/build/
 android/build/
 *.aar
 *.apk
+firebase-service-account.json

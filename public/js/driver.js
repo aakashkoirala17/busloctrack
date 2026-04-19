@@ -35,8 +35,8 @@
   let map = null;
   let driverMarker = null;
   let accuracyCircle = null;
-
-  const { BackgroundGeolocation, App } = Capacitor.Plugins;
+  const BackgroundGeolocation = window.Capacitor?.Plugins?.BackgroundGeolocation || null;
+  const App = window.Capacitor?.Plugins?.App || null;
 
   // Socket.IO
   const token = localStorage.getItem('busloctrack_token');

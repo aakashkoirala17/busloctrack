@@ -9,10 +9,28 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin
-// This requires a service account key. We'll check for an ENV variable.
+// This requires a service account key. We'll check for an ENV variable or a local file.
+let serviceAccount;
+
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (err) {
+    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT env:', err);
+  }
+} else {
+  const accountPath = path.join(__dirname, 'firebase-service-account.json');
+  if (fs.existsSync(accountPath)) {
+    try {
+      serviceAccount = JSON.parse(fs.readFileSync(accountPath, 'utf8'));
+    } catch (err) {
+      console.error('Failed to read firebase-service-account.json:', err);
+    }
+  }
+}
+
+if (serviceAccount) {
+  try {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
@@ -20,6 +38,8 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   } catch (err) {
     console.error('Failed to initialize Firebase Admin:', err);
   }
+} else {
+  console.warn('Firebase Admin NOT initialized: No service account key found.');
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'busloctrack-secret-key-123';

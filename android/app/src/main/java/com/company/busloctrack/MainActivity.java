@@ -1,4 +1,4 @@
-package com.bustrack.app;
+package com.company.busloctrack;
 
 import com.getcapacitor.BridgeActivity;
 

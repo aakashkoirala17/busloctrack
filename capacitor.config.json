@@ -1,6 +1,20 @@
 {
-  "appId": "com.bustrack.app",
+  "appId": "com.company.busloctrack",
   "appName": "BusLocTrack",
   "webDir": "public",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "allowNavigation": [
+      "busloctrack.onrender.com",
+      "*.firebaseapp.com",
+      "*.google.com"
+    ]
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"],
+      "googleAndroidClientId": "818570224559-g818o0co8fuku76q8h3oqhcn57brjvcb.apps.googleusercontent.com"
+    }
+  }
 }
